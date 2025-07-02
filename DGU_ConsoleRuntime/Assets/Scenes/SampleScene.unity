@@ -736,6 +736,10 @@ PrefabInstance:
       propertyPath: m_AnchorMax.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6047964863226422037, guid: 130d68ab7c4a11240a9b971fdd829688, type: 3}
+      propertyPath: StackTraceText_ShowIs_Ori
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6136038585562385487, guid: 130d68ab7c4a11240a9b971fdd829688, type: 3}
       propertyPath: m_AnchorMax.x
       value: 0

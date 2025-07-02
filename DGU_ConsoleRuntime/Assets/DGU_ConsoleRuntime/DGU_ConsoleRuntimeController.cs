@@ -41,8 +41,7 @@ namespace DGUtility_Unity.ConsoleRuntime
         }
         #endregion
 
-        private Func<GameObject> _storedFunctionNoParams;
-
+        
         //public LogItemPrefabController LogItem;
         public GameObject LogItem;
 
@@ -71,11 +70,44 @@ namespace DGUtility_Unity.ConsoleRuntime
         private Button ConsoleInputBtn { get; set; }
 
 
+        #region 옵션 관련
         /// <summary>
         /// 시작하자마자 표시할지 여부
         /// </summary>
         public bool StartShowIs = false;
 
+        /// <summary>
+        /// 폰트 지정
+        /// </summary>
+        public Font ConsoleFont = null;
+
+        /// <summary>
+        /// 스택 추적 텍스트 표시 여부 - 원본
+        /// </summary>
+        public bool StackTraceText_ShowIs_Ori = false;
+        /// <summary>
+        /// 스택 추적 텍스트 표시 여부
+        /// </summary>
+        public bool StackTraceText_ShowIs
+        {
+            get 
+            { 
+                return this.StackTraceText_ShowIs_Ori;
+            }
+            set
+            {
+                this.StackTraceText_ShowIs_Ori = value;
+
+                for (int i = 0; i < this.LogList.Count; ++i)
+                {
+                    LogDisplayDataModel item = this.LogList[i];
+
+                    item.LogItemCont.StackTraceTextShow(this.StackTraceText_ShowIs_Ori);
+                }
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// 로그 리스트UI에 사용할 프리팹
@@ -323,9 +355,14 @@ namespace DGUtility_Unity.ConsoleRuntime
                     = Instantiate(this.LogItem
                                     , this.LogScrollViewContentTransform);
 
-                goNew.GetComponent<LogItemPrefabController>()
-                    .DataSetting(item.LogData);
+                item.LogItemCont = goNew.GetComponent<LogItemPrefabController>();
+                item.LogItemCont.FontSet(this.ConsoleFont);
+
                 item.DisplayIs = true;
+                item.LogItemCont.DataSetting(item.LogData);
+                
+
+                item.LogItemCont.StackTraceTextShow(this.StackTraceText_ShowIs_Ori);
             }
 
             StartCoroutine(ScrollToBottomAfterDelay());
@@ -358,7 +395,7 @@ namespace DGUtility_Unity.ConsoleRuntime
         /// <param name="sCmd"></param>
         public void ConsoleCommand(string sCmd)
         {
-            Debug.Log("ConsoleCommand : " + sCmd);
+            //Debug.Log("ConsoleCommand : " + sCmd);
             this.OnCommandInput(sCmd);
         }
 

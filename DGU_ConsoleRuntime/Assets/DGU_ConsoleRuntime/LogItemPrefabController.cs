@@ -108,7 +108,7 @@ namespace DGUtility_Unity.ConsoleRuntime
             }
 
             this.TypeLable.text
-                = string.Format("  {0, 12}  ", dataLog.Type);
+                = string.Format("  {0, 10}  ", dataLog.Type);
             this.TypeLable.color = color;
 
             this.LogText.text
@@ -116,6 +116,24 @@ namespace DGUtility_Unity.ConsoleRuntime
 
             this.StackTraceText.text
                 = string.Format("{0}", dataLog.StackTrace);
+        }
+
+        /// <summary>
+        /// 폰트 지정
+        /// </summary>
+        /// <param name="font"></param>
+        public void FontSet(Font font)
+        {
+            if(null != font)
+            {
+                this.SquareBeforeLable.font = font;
+                this.DateLable.font = font;
+                this.TimeLable.font = font;
+                this.SquareAfterLable.font = font;
+                this.TypeLable.font = font;
+                this.LogText.font = font;
+                this.StackTraceText.font = font;
+            }
         }
 
         /// <summary>
@@ -130,6 +148,15 @@ namespace DGUtility_Unity.ConsoleRuntime
             this.SquareAfterLable.fontSize = size;
             this.LogText.fontSize = size;
             this.StackTraceText.fontSize = size;
+        }
+
+        /// <summary>
+        /// 스택 추적 텍스트 표시 여부 설정
+        /// </summary>
+        /// <param name="bShow"></param>
+        public void StackTraceTextShow(bool bShow)
+        {
+            this.StackTraceText.gameObject.SetActive(bShow);
         }
     }
 }

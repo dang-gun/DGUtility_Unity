@@ -33,6 +33,47 @@ public class MainController : MonoBehaviour
     /// <param name="sData"></param>
     private void ConsoleUI_OnCommandInput(string sData)
     {
+        Debug.Log("Console Command : " + sData);
 
+        //소문자로 변환
+        //띄어쓰기로 구분
+        string[] sCut = sData.ToLower().Split(" ");
+
+        switch (sCut[0])
+        {
+            case "st"://추적 스택 표시 여부
+                if ("on" == sCut[1]) // st on
+                {
+                    this.ConsoleUI.StackTraceText_ShowIs = true;
+                    Debug.Log("Stack Trace Text : Show");
+                }
+                else if ("off" == sCut[1])
+                {
+                    this.ConsoleUI.StackTraceText_ShowIs = false;
+                    Debug.Log("Stack Trace Text : Hide");
+                }
+                break;
+
+            case "logtype":
+                switch(sCut[1])
+                {
+                    case "error":
+                        Debug.LogError("Log Type : Error");
+                        break;
+                    case "assert":
+                        Debug.LogAssertion("Log Type : Assert");
+                        break;
+                    case "warning":
+                        Debug.LogWarning("Log Type : Warning");
+                        break;
+                    case "exception":
+                        Debug.LogException(new System.Exception("Log Type : Exception"));
+                        break;
+                    case "log":
+                        Debug.Log("Log Type : Log");
+                        break;
+                }
+                break;
+        }
     }
 }

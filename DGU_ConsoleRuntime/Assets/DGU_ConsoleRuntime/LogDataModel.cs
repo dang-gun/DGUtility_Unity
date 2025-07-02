@@ -24,6 +24,12 @@ namespace DGUtility_Unity.ConsoleRuntime
         /// </summary>
         public bool DisplayIs { get; set; }
 
+
+        /// <summary>
+        /// 연결된 UI 개체 컨트롤러
+        /// </summary>
+        public LogItemPrefabController LogItemCont { get; set; } = null;
+
         public LogDisplayDataModel(LogDataModel dataLog)
         {
             this.LogData = dataLog;
