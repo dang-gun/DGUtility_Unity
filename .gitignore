@@ -5,6 +5,7 @@
 .utmp/
 /[Ll]ibrary/
 /[Tt]emp/
+/[Bi]in/
 /[Oo]bj/
 /[Bb]uild/
 /[Bb]uilds/
@@ -97,3 +98,5 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+
