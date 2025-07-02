@@ -737,6 +737,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6047964863226422037, guid: 130d68ab7c4a11240a9b971fdd829688, type: 3}
+      propertyPath: ConsoleFont
+      value: 
+      objectReference: {fileID: 12800000, guid: 8a9b55bbe44bb994bac22b45960f50db, type: 3}
+    - target: {fileID: 6047964863226422037, guid: 130d68ab7c4a11240a9b971fdd829688, type: 3}
       propertyPath: StackTraceText_ShowIs_Ori
       value: 0
       objectReference: {fileID: 0}
