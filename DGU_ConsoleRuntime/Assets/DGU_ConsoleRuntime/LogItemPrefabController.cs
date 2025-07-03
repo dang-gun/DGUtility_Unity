@@ -148,8 +148,8 @@ namespace DGUtility_Unity.ConsoleRuntime
         /// <summary>
         /// 폰트 지정
         /// </summary>
-        /// <param name="font"></param>
-        public void FontSet(TMP_FontAsset font )
+        /// <param name="font">TMP 폰트</param>
+        public void FontSet(TMP_FontAsset font)
         {
             if(null != font)
             {
