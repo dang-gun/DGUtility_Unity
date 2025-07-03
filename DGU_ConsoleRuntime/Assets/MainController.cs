@@ -27,6 +27,13 @@ public class MainController : MonoBehaviour
         }
     }
 
+    
+    void OnRectTransformDimensionsChange()
+    {
+        Debug.Log("UI 요소의 크기가 변경되었습니다: " + GetComponent<RectTransform>().rect.size);
+        // 여기에 UI 요소 크기 변화에 따른 로직을 추가합니다.
+    }
+
     /// <summary>
     /// 콘솔 명령어가 들어올때 할 동작
     /// </summary>
@@ -44,15 +51,34 @@ public class MainController : MonoBehaviour
             case "st"://추적 스택 표시 여부
                 if ("on" == sCut[1]) // st on
                 {
-                    this.ConsoleUI.StackTraceText_ShowIs = true;
+                    this.ConsoleUI.StackTraceText_Apply(true);
                     Debug.Log("Stack Trace Text : Show");
                 }
                 else if ("off" == sCut[1])
                 {
-                    this.ConsoleUI.StackTraceText_ShowIs = false;
+                    this.ConsoleUI.StackTraceText_Apply(false);
                     Debug.Log("Stack Trace Text : Hide");
                 }
                 break;
+
+            case "fontsize"://폰트 사이즈 지정
+                {
+                    int nFontSize = 0;
+                    //문자를 숫자로 변환
+                    int.TryParse(sCut[1], out nFontSize);
+
+                    if (0 < nFontSize)
+                    {
+                        this.ConsoleUI.FontSize_Apply(nFontSize);
+                        Debug.Log("Font Size : " + nFontSize);
+                    }
+                    else
+                    {
+                        Debug.LogError("Font Size : Invalid Size");
+                    }
+                }
+                break;
+                
 
             case "logtype":
                 switch(sCut[1])

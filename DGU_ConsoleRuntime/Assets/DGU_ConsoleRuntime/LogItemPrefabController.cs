@@ -17,61 +17,61 @@ namespace DGUtility_Unity.ConsoleRuntime
         /// <summary>
         /// 앞쪽 대괄호
         /// </summary>
-        private Text SquareBeforeLable { get; set; }
+        private TextMeshProUGUI SquareBeforeLable { get; set; }
         /// <summary>
         /// 날짜
         /// </summary>
-        private Text DateLable { get; set; }
+        private TextMeshProUGUI DateLable { get; set; }
         /// <summary>
         /// 시간
         /// </summary>
-        private Text TimeLable { get; set; }
+        private TextMeshProUGUI TimeLable { get; set; }
         /// <summary>
         /// 뒤쪽 대괄호
         /// </summary>
-        private Text SquareAfterLable { get; set; }
+        private TextMeshProUGUI SquareAfterLable { get; set; }
 
 
         /// <summary>
         /// 타입
         /// </summary>
-        private Text TypeLable { get; set; }
+        private TextMeshProUGUI TypeLable { get; set; }
 
         /// <summary>
         /// 로그 출력용 텍스트
         /// </summary>
-        private Text LogText { get; set; }
+        private TextMeshProUGUI LogText { get; set; }
         /// <summary>
         /// 추적 스택용 텍스트
         /// </summary>
-        private Text StackTraceText { get; set; }
+        private TextMeshProUGUI StackTraceText { get; set; }
 
         private void Awake()
         {
             this.SquareBeforeLable
                 = this.transform.Find("LogPanel/SquareBeforeLable").gameObject
-                                .GetComponent<Text>();
+                                .GetComponent<TextMeshProUGUI>();
             this.DateLable
                 = this.transform.Find("LogPanel/DateLable").gameObject
-                                .GetComponent<Text>();
+                                .GetComponent<TextMeshProUGUI>();
             this.TimeLable
                 = this.transform.Find("LogPanel/TimeLable").gameObject
-                                .GetComponent<Text>();
+                                .GetComponent<TextMeshProUGUI>();
             this.SquareAfterLable
                 = this.transform.Find("LogPanel/SquareAfterLable").gameObject
-                                .GetComponent<Text>();
+                                .GetComponent<TextMeshProUGUI>();
 
 
             this.TypeLable
                 = this.transform.Find("LogPanel/TypeLable").gameObject
-                                .GetComponent<Text>();
+                                .GetComponent<TextMeshProUGUI>();
 
             this.LogText 
                 = this.transform.Find("LogPanel/LogText").gameObject
-                                .GetComponent<Text>();
+                                .GetComponent<TextMeshProUGUI>();
             this.StackTraceText
                 = this.transform.Find("StackTraceText").gameObject
-                                .GetComponent<Text>();
+                                .GetComponent<TextMeshProUGUI>();
         }
 
         /// <summary>
@@ -81,9 +81,9 @@ namespace DGUtility_Unity.ConsoleRuntime
         public void DataSetting(LogDataModel dataLog)
         {
             this.DateLable.text
-                = string.Format("{0:yyyy-MM-dd}", dataLog.WriteTime);
+                = string.Format("{0:yyyy-MM-dd} ", dataLog.WriteTime);
             this.TimeLable.text
-                = string.Format("{0:HH:mm:ss}", dataLog.WriteTime);
+                = string.Format(" {0:HH:mm:ss}", dataLog.WriteTime);
 
             Color color = Color.white;
             switch(dataLog.Type)
@@ -108,7 +108,7 @@ namespace DGUtility_Unity.ConsoleRuntime
             }
 
             this.TypeLable.text
-                = string.Format("  {0, 10}  ", dataLog.Type);
+                = string.Format("[{0,-10}]", dataLog.Type);
             this.TypeLable.color = color;
 
             this.LogText.text
@@ -119,10 +119,37 @@ namespace DGUtility_Unity.ConsoleRuntime
         }
 
         /// <summary>
+        /// 마지막 아이템을 제외한 가로 크기를 반환한다.
+        /// </summary>
+        /// <returns></returns>
+        public float WidthSizeGet_WithoutLastLable()
+        {
+            float fWidth = 0.0f;
+
+            fWidth += this.SquareBeforeLable.preferredWidth;
+            fWidth += this.DateLable.preferredWidth;
+            fWidth += this.TimeLable.preferredWidth;
+            fWidth += this.SquareAfterLable.preferredWidth;
+            fWidth += this.TypeLable.preferredWidth;
+
+            return fWidth;
+        }
+
+        /// <summary>
+        /// 마지막 레이블의 가로 크기를 지정한다.
+        /// </summary>
+        /// <param name="fWidth"></param>
+        public void WidthSizeSet_LastLabel(float fWidth)
+        {
+            this.LogText.rectTransform.sizeDelta
+                = new Vector2(fWidth, this.LogText.rectTransform.sizeDelta.y);
+        }
+
+        /// <summary>
         /// 폰트 지정
         /// </summary>
         /// <param name="font"></param>
-        public void FontSet(Font font)
+        public void FontSet(TMP_FontAsset font )
         {
             if(null != font)
             {
@@ -146,6 +173,7 @@ namespace DGUtility_Unity.ConsoleRuntime
             this.DateLable.fontSize = size;
             this.TimeLable.fontSize = size;
             this.SquareAfterLable.fontSize = size;
+            this.TypeLable.fontSize = size;
             this.LogText.fontSize = size;
             this.StackTraceText.fontSize = size;
         }

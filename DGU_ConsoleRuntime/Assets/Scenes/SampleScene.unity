@@ -630,7 +630,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 39819711819418111, guid: 130d68ab7c4a11240a9b971fdd829688, type: 3}
       propertyPath: m_ChildForceExpandWidth
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 90849120530391285, guid: 130d68ab7c4a11240a9b971fdd829688, type: 3}
       propertyPath: m_AnchorMax.x
@@ -739,7 +739,7 @@ PrefabInstance:
     - target: {fileID: 6047964863226422037, guid: 130d68ab7c4a11240a9b971fdd829688, type: 3}
       propertyPath: ConsoleFont
       value: 
-      objectReference: {fileID: 12800000, guid: 8a9b55bbe44bb994bac22b45960f50db, type: 3}
+      objectReference: {fileID: 11400000, guid: a46a70ef3fbd85a499b86ff51d82f185, type: 2}
     - target: {fileID: 6047964863226422037, guid: 130d68ab7c4a11240a9b971fdd829688, type: 3}
       propertyPath: StackTraceText_ShowIs_Ori
       value: 0

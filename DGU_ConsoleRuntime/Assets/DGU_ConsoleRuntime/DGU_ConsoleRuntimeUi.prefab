@@ -956,8 +956,8 @@ MonoBehaviour:
     m_Bottom: 0
   m_ChildAlignment: 0
   m_Spacing: 10
-  m_ChildForceExpandWidth: 1
-  m_ChildForceExpandHeight: 0
+  m_ChildForceExpandWidth: 0
+  m_ChildForceExpandHeight: 1
   m_ChildControlWidth: 0
   m_ChildControlHeight: 0
   m_ChildScaleWidth: 0
@@ -976,7 +976,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_HorizontalFit: 0
-  m_VerticalFit: 1
+  m_VerticalFit: 2
 --- !u!1 &7271675555016389354
 GameObject:
   m_ObjectHideFlags: 0
@@ -1228,6 +1228,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   LogItem: {fileID: 6694163275884005350, guid: 17610d08669be65438cc4f881172a7eb, type: 3}
   StartShowIs: 0
+  ConsoleFont: {fileID: 0}
+  FontSize: 18
+  StackTraceText_ShowIs: 0
 --- !u!223 &9117118675812155325
 Canvas:
   m_ObjectHideFlags: 0

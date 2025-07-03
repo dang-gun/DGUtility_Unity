@@ -52,6 +52,19 @@ namespace DGUtility_Unity.ConsoleRuntime
         private Canvas CanvasThis { get; set; }
 
         /// <summary>
+        /// 이 UI의 RectTransform
+        /// </summary>
+        private RectTransform RTThis { get; set; }
+        /// <summary>
+        /// 아이템의 마지막 레이블이 사용할 크기
+        /// </summary>
+        private float Item_LastLabel { get; set; }
+        /// <summary>
+        /// 마지막 레이블의 크기가 한번이상 설정되었었는지 여부
+        /// </summary>
+        private bool Item_LastLabel_IsSet = false;
+
+        /// <summary>
         /// 스크롤
         /// </summary>
         private ScrollRect LogScrollView { get; set; }
@@ -79,31 +92,59 @@ namespace DGUtility_Unity.ConsoleRuntime
         /// <summary>
         /// 폰트 지정
         /// </summary>
-        public Font ConsoleFont = null;
+        public TMP_FontAsset ConsoleFont = null;
 
         /// <summary>
-        /// 스택 추적 텍스트 표시 여부 - 원본
+        /// 폰트 사이즈 지정
         /// </summary>
-        public bool StackTraceText_ShowIs_Ori = false;
+        public int FontSize = 18;
+        /// <summary>
+        /// 폰트 사이즈 적용
+        /// </summary>
+        public void FontSize_Apply()
+        {
+            this.FontSize_Apply(this.FontSize);
+        }
+        /// <summary>
+        /// 폰트 사이즈 적용
+        /// </summary>
+        /// <param name="sFontSize"></param>
+        public void FontSize_Apply(int sFontSize)
+        {
+            this.FontSize = sFontSize;
+
+            for (int i = 0; i < this.LogList.Count; ++i)
+            {
+                LogDisplayDataModel item = this.LogList[i];
+
+                item.LogItemCont.FontSizeSet(sFontSize);
+            }
+
+            this.ReszieThis();
+        }
+
         /// <summary>
         /// 스택 추적 텍스트 표시 여부
         /// </summary>
-        public bool StackTraceText_ShowIs
+        public bool StackTraceText_ShowIs = false;
+        /// <summary>
+        /// 스택 추적 텍스트 표시 여부 적용
+        /// </summary>
+        public void StackTraceText_Apply()
         {
-            get 
-            { 
-                return this.StackTraceText_ShowIs_Ori;
-            }
-            set
+            this.StackTraceText_Apply(this.StackTraceText_ShowIs);
+        }
+        /// <summary>
+        /// 스택 추적 텍스트 표시 여부 적용
+        /// </summary>
+        /// <param name="bShow"></param>
+        public void StackTraceText_Apply(bool bShow)
+        {
+            for (int i = 0; i < this.LogList.Count; ++i)
             {
-                this.StackTraceText_ShowIs_Ori = value;
+                LogDisplayDataModel item = this.LogList[i];
 
-                for (int i = 0; i < this.LogList.Count; ++i)
-                {
-                    LogDisplayDataModel item = this.LogList[i];
-
-                    item.LogItemCont.StackTraceTextShow(this.StackTraceText_ShowIs_Ori);
-                }
+                item.LogItemCont.StackTraceTextShow(bShow);
             }
         }
 
@@ -154,6 +195,7 @@ namespace DGUtility_Unity.ConsoleRuntime
             //임시로 직접 탐색한다.
 
             this.CanvasThis = this.GetComponent<Canvas>();
+            this.RTThis = this.CanvasThis.GetComponent<RectTransform>();
 
             this.LogScrollView
                 = this.transform.Find("LogScrollView").gameObject
@@ -184,6 +226,43 @@ namespace DGUtility_Unity.ConsoleRuntime
             if (false == this.StartShowIs)
             {
                 this.UI_Inactive();
+            }
+
+
+        }
+
+        /// <summary>
+        /// 사이즈를 다시 계산한다.
+        /// <para>외부에 의해서 리사이즈 이슈가 있을때 호출해야한다.</para>
+        /// </summary>
+        public void ReszieThis()
+        {
+            if(0 < this.LogList.Count)
+            {//내용이 있다.
+
+                LogItemPrefabController item = this.LogList[0].LogItemCont;
+                if(null != item)
+                {//아이템 컨트롤러가 있다
+
+                    //아이템 컨트롤러의 크기를 다시 계산한다.
+                    this.Item_LastLabel
+                        = this.RTThis.rect.width 
+                            - 50f //좌우 여백
+                            - item.WidthSizeGet_WithoutLastLable();
+
+
+                    Item_AllResize();
+                }
+                
+            }
+        }
+
+        private void Item_AllResize()
+        {
+            for (int i = 0; i < this.LogList.Count; ++i)
+            {
+                LogDisplayDataModel item = this.LogList[i];
+                item.LogItemCont.WidthSizeSet_LastLabel(this.Item_LastLabel);
             }
         }
 
@@ -348,21 +427,22 @@ namespace DGUtility_Unity.ConsoleRuntime
             {
                 LogDisplayDataModel item = listShow[i];
 
-                //GameObject goNew
-                //    = GlobalStatic.ResMgr
-                //        .NewInstance(this.LogItemPrefab_Path, this.ListViewContentTransform);
                 GameObject goNew 
                     = Instantiate(this.LogItem
                                     , this.LogScrollViewContentTransform);
 
                 item.LogItemCont = goNew.GetComponent<LogItemPrefabController>();
                 item.LogItemCont.FontSet(this.ConsoleFont);
+                item.LogItemCont.FontSizeSet(this.FontSize);
 
                 item.DisplayIs = true;
                 item.LogItemCont.DataSetting(item.LogData);
                 
 
-                item.LogItemCont.StackTraceTextShow(this.StackTraceText_ShowIs_Ori);
+                item.LogItemCont.StackTraceTextShow(this.StackTraceText_ShowIs);
+
+                //아이템 컨트롤러의 크기를 다시 계산한다.
+                item.LogItemCont.WidthSizeSet_LastLabel(this.Item_LastLabel);
             }
 
             StartCoroutine(ScrollToBottomAfterDelay());
@@ -379,6 +459,14 @@ namespace DGUtility_Unity.ConsoleRuntime
 
             Canvas.ForceUpdateCanvases(); // 캔버스 강제 업데이트
             this.LogScrollView.verticalNormalizedPosition = 0f; // 스크롤을 맨 아래로 이동
+
+            if (false == this.Item_LastLabel_IsSet)
+            {//마지막 레이블 크기가 수정되지 않았다.
+
+                //크기를 재계산한다.
+                this.Item_LastLabel_IsSet = true;
+                this.ReszieThis();
+            }
         }
 
         /// <summary>
