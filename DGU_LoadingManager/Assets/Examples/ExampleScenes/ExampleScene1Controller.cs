@@ -35,7 +35,7 @@ public class ExampleScene1Controller
         this.SceneLoadCompleteIs = true;
 
         //씬이 로드되고 바로 추가 로드할것이 없으므로 그냥 로딩창을 닫는다.
-        LoadingManager.Instance?.HideLoadingScreen();
+        LoadingManager.Instance?.LoadingScreen_Hide();
     }
 
 }

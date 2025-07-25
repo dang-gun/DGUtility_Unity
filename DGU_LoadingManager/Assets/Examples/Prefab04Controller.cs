@@ -7,12 +7,12 @@ using UnityEngine.AddressableAssets;
 
 
 /// <summary>
-/// LoadingManager 사용 예제들을 보여주는 스크립트
+/// 프리팹4
 /// </summary>
-public class Prefab04Controller : MonoBehaviour
+public class Prefab04Controller : MonoBehaviour, PrefabTestInterface
 {
     /// <summary>
-    /// 
+    /// 텍스트를 출력할 개체
     /// </summary>
     private TextMeshProUGUI MainText = null;
 
@@ -20,21 +20,20 @@ public class Prefab04Controller : MonoBehaviour
     {
         this.MainText = GetComponent<TextMeshProUGUI>();
 
-        // 씬이 완전히 로드된 후 필요한 리소스들을 로딩
-        StartCoroutine(LoadSceneResources());
     }
 
     private void Start()
     {
 
-
+        this.MainText.text = "Prefab01 Load Complete!!";
     }
 
-    private IEnumerator LoadSceneResources()
+    /// <summary>
+    /// 텍스트 출력
+    /// </summary>
+    /// <param name="sMsg">출력할 메시지</param>
+    public void TextSet(string sMsg)
     {
-        //임의의 시간을 두어 로드가 되는 것인것 처럼 보이게 한다.
-        yield return new WaitForSeconds(3.0f);
-
-        this.MainText.text = "Prefab04 Load Complete!!";
+        this.MainText.text = "Prefab01 : " + sMsg;
     }
 }

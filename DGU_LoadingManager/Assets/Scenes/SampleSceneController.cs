@@ -73,7 +73,8 @@ public class SampleSceneController : MonoBehaviour
     public void ExampleLoadScene1()
     {
         // 정적 메서드 사용
-        LoadingManager.LoadSceneStatic(true, this.Scene1Path);
+        LoadingManager.Instance?.CompleteHideLoadingScreenIsSet(true);
+        LoadingManager.LoadSceneStatic(this.Scene1Path);
 
         // 또는 인스턴스 직접 사용
         // if (LoadingManager.Instance != null)
@@ -87,10 +88,11 @@ public class SampleSceneController : MonoBehaviour
     /// </summary>
     public void ExampleLoadScene2()
     {
+        //진행바 재설정
+        LoadingManager.Instance?.CompleteHideLoadingScreenIsSet(false);
+        LoadingManager.Instance?.ProgressSet(0.0f, 0.2f);
         // 정적 메서드 사용
-        LoadingManager.LoadSceneStatic(
-            false
-            , this.Scene2Path);
+        LoadingManager.LoadSceneStatic(this.Scene2Path);
     }
 
 
@@ -101,8 +103,7 @@ public class SampleSceneController : MonoBehaviour
     public void ExampleLoadAsset()
     {
         LoadingManager.LoadAssetStatic<GameObject>(
-            true
-            , assetKey
+            assetKey
             , (loadedAsset) =>
             {
                 if (loadedAsset != null)
@@ -122,8 +123,7 @@ public class SampleSceneController : MonoBehaviour
         if (LoadingManager.Instance != null)
         {
             LoadingManager.Instance.LoadMultipleAssets(
-                true
-                , multipleAssetKeys
+                multipleAssetKeys
                 , () =>
                 {
                     Debug.Log("All assets loaded successfully!");
@@ -160,8 +160,7 @@ public class SampleSceneController : MonoBehaviour
         };
 
         LoadingManager.Instance.StartCustomLoading(
-            true
-            , customOperations
+            customOperations
             , () =>
             {
                 Debug.Log("Custom loading completed!");
@@ -216,8 +215,7 @@ public class SampleSceneController : MonoBehaviour
         };
 
         LoadingManager.Instance.StartCustomLoading(
-            true
-            , initOperations
+            initOperations
             , () =>
             {
                 Debug.Log("Game initialization completed!");
@@ -252,8 +250,7 @@ public class SampleSceneController : MonoBehaviour
         };
 
         LoadingManager.Instance.StartCustomLoading(
-            true
-            , levelOperations
+            levelOperations
             , () =>
             {
                 Debug.Log($"Level {levelNumber} resources loaded!");
