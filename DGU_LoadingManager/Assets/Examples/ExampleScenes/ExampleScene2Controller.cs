@@ -63,7 +63,7 @@ public class ExampleScene2Controller
     private IEnumerator LoadSceneResources()
     {
         // 약간의 지연을 두어 씬 로딩이 완전히 끝나길 기다림
-        yield return new WaitForSeconds(1.0f);
+        yield return new WaitForSeconds(0.1f);
 
 
         Debug.Log("Loading Test 03 Controller : LoadSceneResources");

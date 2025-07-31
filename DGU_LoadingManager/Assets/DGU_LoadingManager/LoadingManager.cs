@@ -7,10 +7,17 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 using TMPro;
+using UnityEngine.ResourceManagement.ResourceProviders;
 
 
 namespace DGU_LoadingManager
 {
+    /// <summary>
+    /// 로딩 메니저(싱글톤)
+    /// </summary>
+    /// <remarks>
+    /// 로딩용 UI프리맵의 최상단에 넣어 사용한다.
+    /// </remarks>
     public class LoadingManager : MonoBehaviour
     {
         /// <summary>
@@ -21,7 +28,7 @@ namespace DGU_LoadingManager
         /// <summary>
         /// 코루틴 관리 개체
         /// </summary>
-        private Coroutine currentLoadingCoroutine;
+        private Coroutine LoadingCoroutine_Current;
 
 
         #region 로딩 UI 개체참조
@@ -54,11 +61,11 @@ namespace DGU_LoadingManager
         /// <summary>
         /// 최소 로딩 시간(s)
         /// </summary>
-        public float MinLoadingTime = 1f;
+        public float MinLoadingTime = 0.1f;
         /// <summary>
         /// 아이콘 회전 속도
         /// </summary>
-        public float IconRotationSpeed = 360f;
+        public float IconRotationSpeed = 100f;
 
         #endregion
 
@@ -135,7 +142,7 @@ namespace DGU_LoadingManager
         /// </summary>
         private bool WaitingForMinimumTimeIs = false;
 
-        
+
 
 
         private void Awake()
@@ -158,9 +165,9 @@ namespace DGU_LoadingManager
         private void Start()
         {
             // 시작 시 로딩 화면 비활성화
-            if (LoadingCanvas != null)
+            if (this.LoadingCanvas != null)
             {
-                LoadingCanvas.gameObject.SetActive(false);
+                this.LoadingCanvas.gameObject.SetActive(false);
 
                 // 자동으로 UI 컴포넌트들 찾기 (할당되지 않은 경우)
                 this.AutoAssignUIComponents();
@@ -181,6 +188,16 @@ namespace DGU_LoadingManager
             if (Instance == this)
             {
                 SceneManager.sceneLoaded -= OnSceneLoaded;
+
+                // 모든 씬 핸들 해제
+                foreach (var kvp in SceneHandles)
+                {
+                    if (kvp.Value.IsValid())
+                    {
+                        Addressables.UnloadSceneAsync(kvp.Value);
+                    }
+                }
+                SceneHandles.Clear();
             }
         }
 
@@ -197,12 +214,31 @@ namespace DGU_LoadingManager
                 && LoadingCanvas.gameObject.activeSelf
                 && !WaitingForMinimumTimeIs)
             {
-                StartCoroutine(LoadingAfterDelay_Hide(0.5f));
+                StartCoroutine(this.LoadingAfterDelay_Hide(0.5f));
             }
         }
 
 
         #region 리소스 로드 메서드
+
+        /// <summary>
+        /// 관리할 씬 핸들 리스트
+        /// </summary>
+        private static Dictionary<string, AsyncOperationHandle<SceneInstance>>
+            SceneHandles = new Dictionary<string, AsyncOperationHandle<SceneInstance>>();
+        /// <summary>
+        /// 현재 씬의 키
+        /// </summary>
+        private static string SceneKey_Current = string.Empty;
+
+        /// <summary>
+        /// 씬 로드 대기열 관리 (동시 로드 방지)
+        /// </summary>
+        private static Queue<string> SceneQueue = new Queue<string>();
+        /// <summary>
+        /// 씬 대기열이 처리중인지 여부
+        /// </summary>
+        private static bool SceneQueue_ProcessingIs = false;
 
         /// <summary>
         /// 어드레서블 씬 로드
@@ -216,47 +252,145 @@ namespace DGU_LoadingManager
         {
             if (LoadingIs) return;
 
+            // 큐 기반 씬 로딩으로 동시 로드 방지
+            if (mode == LoadSceneMode.Single)
+            {
+                SceneQueue.Enqueue(sSceneKey);
+                if (!SceneQueue_ProcessingIs)
+                {
+                    StartCoroutine(ProcessSceneLoadQueue());
+                }
+            }
+            else
+            {
+                // Additive 모드는 기존 로직 유지
+                LoadSceneInternal(sSceneKey, mode);
+            }
+        }
+
+        /// <summary>
+        /// 씬 로드 큐 처리
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerator ProcessSceneLoadQueue()
+        {
+            SceneQueue_ProcessingIs = true;
+
+            while (SceneQueue.Count > 0)
+            {
+                string sceneKey = SceneQueue.Dequeue();
+
+                // 중복 로드 방지
+                if (SceneKey_Current == sceneKey)
+                {
+                    Debug.Log($"Scene {sceneKey} is already current scene, skipping load");
+                    continue;
+                }
+
+                yield return StartCoroutine(CleanupAndLoadScene(sceneKey, SceneKey_Current));
+
+                // 로딩이 완료될 때까지 대기
+                while (LoadingIs)
+                {
+                    yield return null;
+                }
+            }
+
+            SceneQueue_ProcessingIs = false;
+        }
+
+
+        /// <summary>
+        /// 씬 정리 후 새로 지정된 씬을 로드하는 코루틴
+        /// </summary>
+        /// <param name="sSceneKey"></param>
+        /// <param name="previousSceneName"></param>
+        /// <returns></returns>
+        private IEnumerator CleanupAndLoadScene(
+            string sSceneKey
+            , string previousSceneName)
+        {
+            // 2. 현재 씬이 어드레서블로 로드된 씬인지 확인하고 해제
+            if (!string.IsNullOrEmpty(SceneKey_Current) && SceneHandles.ContainsKey(SceneKey_Current))
+            {
+                Debug.Log($"Releasing previous scene handle: {SceneKey_Current}");
+
+                var handle = SceneHandles[SceneKey_Current];
+                if (handle.IsValid())
+                {
+                    var unloadOp = Addressables.UnloadSceneAsync(handle);
+                    yield return unloadOp;
+
+                    // 언로드 완료 대기
+                    if (unloadOp.IsValid())
+                    {
+                        while (!unloadOp.IsDone)
+                        {
+                            yield return null;
+                        }
+                    }
+                }
+
+                SceneHandles.Remove(SceneKey_Current);
+            }
+
+            // 3. 자연스러운 메모리 정리 - GC.Collect() 대신 사용
+            var unloadOperation = Resources.UnloadUnusedAssets();
+            yield return unloadOperation;
+
+            // 4. 어드레서블 시스템이 안정화될 시간 제공
+            yield return new WaitForSecondsRealtime(0.2f);
+
+            // 5. 새 씬 로드
+            LoadSceneInternal(sSceneKey, LoadSceneMode.Single);
+        }
+
+        /// <summary>
+        /// 실제 씬 로드 로직
+        /// </summary>
+        /// <param name="sSceneKey"></param>
+        /// <param name="mode"></param>
+        private void LoadSceneInternal(
+            string sSceneKey
+            , LoadSceneMode mode)
+        {
             var operation = new LoadingOperationDataModel(
                 $"Scene loading: {sSceneKey}",
-                () => Addressables.LoadSceneAsync(sSceneKey, mode)
-            );
+                () => {
+                    var handle = Addressables.LoadSceneAsync(sSceneKey, mode);
 
-            //StartLoading(new List<LoadingOperation> { operation });
-            StartLoading(
-                new List<LoadingOperationDataModel> { operation }
-                , () =>
-                { //씬 로드 완료
-                    this.LoadingIs = false;
-                    Debug.Log("LoadScene : ");
-
-                    // 로드된 씬에서 "MainScript"라는 이름의 GameObject를 찾습니다.
-                    // 모든 씬에 'MainScript'라는 이름의 오브젝트가 있다고 가정합니다.
-                    GameObject mainScriptObject = GameObject.Find("MainScript");
-
-                    if (mainScriptObject != null)
+                    // 핸들 저장 (Single 모드인 경우에만)
+                    if (mode == LoadSceneMode.Single)
                     {
-                        // MainScript 오브젝트에 있는 첫 번째 스크립트에서 ILevelInitializer 인터페이스를 찾습니다.
-                        // GetComponent<ILevelInitializer>()는 해당 오브젝트의 모든 컴포넌트를 순회하여
-                        // ILevelInitializer를 구현하는 첫 번째 컴포넌트를 반환합니다.
-                        SceneCommonInterface levelInitializer
-                            = mainScriptObject.GetComponent<SceneCommonInterface>();
-
-                        if (levelInitializer != null)
+                        if (SceneHandles.ContainsKey(sSceneKey))
                         {
-                            //SceneLoadComplete 함수 호출
-                            levelInitializer.SceneLoadComplete();
+                            SceneHandles[sSceneKey] = handle;
                         }
                         else
                         {
-                            Debug.LogWarning("ILevelInitializer component not found on MainScript object in the loaded scene.");
+                            SceneHandles.Add(sSceneKey, handle);
                         }
+                        SceneKey_Current = sSceneKey;
                     }
-                    else
-                    {
-                        Debug.LogWarning("MainScript object not found in the loaded scene.");
-                    }
+
+                    return handle;
+                }
+            );
+
+            Debug.Log($"LoadScene Start : {sSceneKey}");
+
+            StartLoading(
+                new List<LoadingOperationDataModel> { operation }
+                , () =>
+                {
+                    this.LoadingIs = false;
+                    Debug.Log($"LoadScene Complete : {sSceneKey}");
+
+                    LoadingManagerUtility insLM = new LoadingManagerUtility();
+                    insLM.Find_SceneCommonInterface().SceneLoadComplete();
                 });
         }
+
 
         /// <summary>
         /// 어드레서블 에셋 단일 로드
@@ -266,7 +400,7 @@ namespace DGU_LoadingManager
         /// <param name="actionComplete"></param>
         public void LoadAsset<T>(
             string sAssetKey
-            , Action<T> actionComplete = null) 
+            , Action<T> actionComplete = null)
             where T : UnityEngine.Object
         {
             if (LoadingIs) return;
@@ -374,7 +508,7 @@ namespace DGU_LoadingManager
 
         #endregion
 
-        #region Auto Assignment Methods
+        #region 계층 구조 개체들 자동으로 찾기
 
         /// <summary>
         /// UI 컴포넌트들을 자동으로 찾아서 할당
@@ -435,14 +569,20 @@ namespace DGU_LoadingManager
             List<LoadingOperationDataModel> operations
             , Action onComplete = null)
         {
-            if (currentLoadingCoroutine != null)
+            //Debug.Log($"StartLoading 1 : ");
+            if (LoadingCoroutine_Current != null)
             {
-                StopCoroutine(currentLoadingCoroutine);
+                StopCoroutine(LoadingCoroutine_Current);
+                //Debug.Log($"StartLoading 2 : StopCoroutine ");
             }
 
-            currentLoadingCoroutine
+            //Debug.Log($"StartLoading 3 : ");
+            LoadingCoroutine_Current
                 = StartCoroutine(LoadingCoroutine(operations, onComplete));
+
+            //Debug.Log($"StartLoading 4 : ");
         }
+
 
         /// <summary>
         /// 로딩 화면을 표시하고 로딩을 진행한 후 로딩 화면을 끈다.
@@ -479,7 +619,12 @@ namespace DGU_LoadingManager
                 totalWeight += op.Weight;
             }
 
+
+            Debug.Log($"LoadingCoroutine 1 : ");
+
             float currentProgress = 0f;
+            bool hasErrors = false;
+            string sError = string.Empty;
 
             // 각 작업 실행
             foreach (var operation in listOperations)
@@ -488,9 +633,56 @@ namespace DGU_LoadingManager
 
                 var handle = operation.Operation.Invoke();
 
-                // 작업 진행률 모니터링
+
+                // 타임아웃 설정 (5초)
+                float operationStartTime = Time.realtimeSinceStartup;
+                const float TIMEOUT_SECONDS = 5f;
+
+
+
+                Debug.Log($"LoadingCoroutine 2 : {operation.OperationMessage}");
+                // 추가: 핸들 유효성 검사
+                if (!handle.IsValid())
+                {
+                    Debug.LogError($"Invalid handle for operation: {operation.OperationMessage}");
+                    hasErrors = true;
+                    sError = operation.OperationMessage;
+                    break;
+                }
+
+
+
+                // 작업 진행률 모니터링 (타임아웃 포함)
                 while (!handle.IsDone)
                 {
+                    // 타임아웃 체크
+                    float operationElapsedTime = Time.realtimeSinceStartup - operationStartTime;
+                    //Debug.Log($"LoadingCoroutine 3 : {operationElapsedTime} = {Time.realtimeSinceStartup} - {operationStartTime} ");
+
+                    if (operationElapsedTime >= TIMEOUT_SECONDS)
+                    {
+                        Debug.LogError($"Loading operation timed out after {TIMEOUT_SECONDS} seconds: {operation.OperationMessage}");
+                        Debug.LogError($"Handle status: {handle.Status}, IsValid: {handle.IsValid()}");
+
+
+                        // 핸들이 유효하다면 릴리스 시도
+                        if (handle.IsValid())
+                        {
+                            try
+                            {
+                                Addressables.Release(handle);
+                            }
+                            catch (System.Exception ex)
+                            {
+                                Debug.LogError($"Error releasing handle: {ex.Message}");
+                            }
+                        }
+
+                        hasErrors = true;
+                        sError = operation.OperationMessage;
+                        break; // while 루프 탈출
+                    }
+
                     float operationProgress = handle.PercentComplete;
                     float weightedProgress = (operationProgress * operation.Weight) / totalWeight;
                     float totalProgress = currentProgress + weightedProgress;
@@ -499,17 +691,41 @@ namespace DGU_LoadingManager
                     yield return null;
                 }
 
-                // 현재 작업 완료 후 진행률 업데이트
-                currentProgress += operation.Weight / totalWeight;
-                this.ProgressUiSet(currentProgress);
+
+                // 타임아웃으로 인한 에러가 발생했다면 전체 로딩 중단
+                if (hasErrors)
+                {
+                    this.LoadingTextSet($"Loading failed due to timeout : {sError}");
+                    break; // foreach 루프 탈출
+                }
 
                 // 에러 체크
                 if (handle.Status == AsyncOperationStatus.Failed)
                 {
                     Debug.LogError($"Loading failed: {operation.OperationMessage}");
+                    Debug.LogError($"Error: {handle.OperationException?.Message}");
+                    hasErrors = true;
+                    break;
                 }
 
+
+
+                // 현재 작업 완료 후 진행률 업데이트
+                currentProgress += operation.Weight / totalWeight;
+                this.ProgressUiSet(currentProgress);
+
+
+
                 yield return new WaitForEndOfFrame();
+            }
+
+
+            // 에러가 발생한 경우 로딩 중단
+            if (hasErrors)
+            {
+                this.LoadingIs = false;
+                this.LoadingScreen_Hide();
+                yield break;
             }
 
 
@@ -519,7 +735,7 @@ namespace DGU_LoadingManager
             {//최소 대기 시간이 지나지 않았다.
 
                 //최소 시간 대기 시작
-                this.WaitingForMinimumTimeIs = true; 
+                this.WaitingForMinimumTimeIs = true;
 
                 //남은 시간 계산
                 float remainingTime = MinLoadingTime - elapsedTime;
@@ -554,7 +770,7 @@ namespace DGU_LoadingManager
             actionComplete?.Invoke();
 
             this.LoadingIs = false;
-            this.currentLoadingCoroutine = null;
+            this.LoadingCoroutine_Current = null;
         }
 
         /// <summary>
@@ -571,6 +787,30 @@ namespace DGU_LoadingManager
                 // 로딩 화면 표시 시 현재 씬의 캔버스 설정 적용
                 SceneCanvas_SettingsApply();
             }
+        }
+
+        /// <summary>
+        /// 로딩 스크린 가리기
+        /// </summary>
+        public void LoadingScreen_Hide()
+        {
+            if (LoadingCanvas != null)
+            {
+                this.LoadingUiIs = false;
+                LoadingCanvas.gameObject.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// 지정한 시간만큼 대기했다가 로딩 스크린 가리기
+        /// </summary>
+        /// <param name="delay"></param>
+        /// <returns></returns>
+        private IEnumerator LoadingAfterDelay_Hide(float delay)
+        {
+            Debug.Log("HideLoadingAfterDelay : " + delay);
+            yield return new WaitForSecondsRealtime(delay);
+            LoadingScreen_Hide();
         }
 
         /// <summary>
@@ -610,7 +850,7 @@ namespace DGU_LoadingManager
 
 
 
-            if(null != targetCanvas)
+            if (null != targetCanvas)
             {//캔버스 개체가 있다.
 
                 //값을 다시 설정
@@ -638,7 +878,7 @@ namespace DGU_LoadingManager
                 // 로딩 화면은 다른 UI보다 위에 표시되어야 하므로 sorting order를 높게 설정
                 LoadingCanvas.sortingOrder = targetCanvas.sortingOrder + 1000;
             }
-            
+
         }
 
         /// <summary>
@@ -652,54 +892,31 @@ namespace DGU_LoadingManager
             , Canvas current)
         {
             // Screen Space Camera 모드를 우선시
-            if (candidate.renderMode == RenderMode.ScreenSpaceCamera 
+            if (candidate.renderMode == RenderMode.ScreenSpaceCamera
                 && current.renderMode != RenderMode.ScreenSpaceCamera)
             {
                 return true;
             }
-                
+
 
             // World Space 모드를 Screen Space Overlay보다 우선시 (단, Screen Space Camera보다는 낮음)
-            if (candidate.renderMode == RenderMode.WorldSpace 
+            if (candidate.renderMode == RenderMode.WorldSpace
                 && current.renderMode == RenderMode.ScreenSpaceOverlay)
             {
                 return true;
             }
-                
+
 
             // 같은 렌더 모드라면 sorting order가 높은 것을 우선시
             if (candidate.renderMode == current.renderMode)
             {
                 return candidate.sortingOrder > current.sortingOrder;
             }
-                
+
 
             return false;
         }
 
-        /// <summary>
-        /// 로딩 스크린 가리기
-        /// </summary>
-        public void LoadingScreen_Hide()
-        {
-            if (LoadingCanvas != null)
-            {
-                this.LoadingUiIs = false;
-                LoadingCanvas.gameObject.SetActive(false);
-            }
-        }
-
-        /// <summary>
-        /// 지정한 시간만큼 대기했다가 로딩 스크린 가리기
-        /// </summary>
-        /// <param name="delay"></param>
-        /// <returns></returns>
-        private IEnumerator LoadingAfterDelay_Hide(float delay)
-        {
-            Debug.Log("HideLoadingAfterDelay : " + delay);
-            yield return new WaitForSecondsRealtime(delay);
-            LoadingScreen_Hide();
-        }
 
         /// <summary>
         /// 프로그레스 바를 조정하고 프로그레스 텍스트를 출력한다.

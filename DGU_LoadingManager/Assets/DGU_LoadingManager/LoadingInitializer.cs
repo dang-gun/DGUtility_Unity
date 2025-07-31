@@ -5,9 +5,12 @@ using UnityEngine.AddressableAssets;
 namespace DGU_LoadingManager
 {
     /// <summary>
-    /// 게임 시작 시 LoadingManager를 초기화하는 스크립트<br />
-    /// 첫 번째 씬에 배치하거나 별도의 초기화 씬에서 사용
+    /// 게임 시작 시 LoadingManager를 초기화하는 스크립트
     /// </summary>
+    /// <remarks>
+    /// 첫 번째 씬에 배치하거나 별도의 초기화 씬에서 사용
+    /// <para>모든씬에서 동작해야 한다.</para>
+    /// </remarks>
     public class LoadingInitializer : MonoBehaviour
     {
         [Header("Loading Prefab Settings")]
